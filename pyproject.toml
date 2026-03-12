@@ -1,0 +1,86 @@
+[tool.hatch.build]
+# Include _version.py in builds even though it's gitignored (generated at build time)
+artifacts = ["web_proc_info_server/_version.py"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["web_proc_info_server"]
+
+[project]
+name = "web-proc-info-server"
+requires-python = ">=3.12"
+dynamic = ["version"]
+license = "Unlicense"
+authors = [
+    { name = "WaterJuice" },
+]
+description = "Live-updating web dashboard for server load, CPU, memory, processes, Docker, and network"
+readme = "ReadMe.md"
+keywords = ["monitoring", "dashboard", "server", "cpu", "memory", "processes", "docker", "network", "web"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = [
+    "psutil>=6.0.0",
+]
+
+[project.urls]
+Source = "https://github.com/WaterJuice/web-proc-info-server"
+
+[project.scripts]
+web-proc-info-server = "web_proc_info_server.cli:main"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+pattern = "default-unprefixed"
+
+[tool.uv]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = ["F", "E", "W", "I", "Q", "B", "TC", "UP"]
+ignore = ["E501", "B009", "B010", "UP007", "UP036", "TC001", "TC003"]
+
+[tool.ruff.lint.isort]
+no-lines-before = ["future","standard-library","third-party","first-party","local-folder"]
+force-single-line = true
+
+[tool.pyright]
+typeCheckingMode = "strict"
+reportUnusedImport = "error"
+pythonVersion = "3.12"
+exclude = [".venv"]
+
+[tool.cal-publish-python]
+profile = "waterjuice"
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "black",
+    "pyright[nodejs]",
+    "cal-mkdocs ; python_version >= '3.12'",
+    "cal-publish-python>=0.4.0 ; python_version >= '3.12'",
+]

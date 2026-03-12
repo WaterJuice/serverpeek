@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Monitor</title>
+<style>
+/* ---- Reset & Base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-card: #1c2129;
+    --bg-hover: #252c35;
+    --border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-dim: #6e7681;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-yellow: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --accent-cyan: #39d2c0;
+    --bar-bg: #21262d;
+    --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --radius: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+html, body {
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.4;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ---- Full-viewport layout ---- */
+.page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ---- Top Bar ---- */
+.top-bar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+.top-bar h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.top-bar h1 .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+.top-bar .meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
+.connection-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+.connection-status.connected {
+    background: rgba(63, 185, 80, 0.15);
+    color: var(--accent-green);
+}
+.connection-status.disconnected {
+    background: rgba(248, 81, 73, 0.15);
+    color: var(--accent-red);
+}
+
+/* ---- Main Grid ---- */
+.main-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr;
+    grid-template-rows: auto auto 1fr;
+    gap: 8px;
+    padding: 8px;
+    min-height: 0;
+}
+
+/* ---- Cards ---- */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.card-header {
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.card-header h2 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+.card-header .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    background: rgba(88, 166, 255, 0.12);
+    color: var(--accent-blue);
+}
+.card-body {
+    padding: 8px 12px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ---- Machine Info ---- */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.info-item .label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+}
+.info-item .value {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- CPU Bars ---- */
+.cpu-overall {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+.cpu-overall .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+.cpu-overall .label-row .title {
+    font-size: 11px;
+    font-weight: 500;
+}
+.cpu-overall .label-row .value {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+.cpu-cores {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.core-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.core-row .core-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    min-width: 18px;
+    text-align: right;
+}
+.core-row .core-pct {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    min-width: 30px;
+    text-align: right;
+}
+
+/* ---- Bar Component ---- */
+.bar-container {
+    flex: 1;
+    height: 6px;
+    background: var(--bar-bg);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease, background-color 0.6s ease;
+    min-width: 0;
+}
+.bar-large { height: 8px; }
+.bar-large .bar-fill { height: 100%; }
+
+/* ---- Memory ---- */
+.memory-section {
+    margin-bottom: 8px;
+}
+.memory-section:last-child { margin-bottom: 0; }
+.memory-section .mem-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+.memory-section .mem-title {
+    font-size: 11px;
+    font-weight: 500;
+}
+.memory-section .mem-detail {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+}
+.memory-section .mem-pct {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+/* ---- Load Average ---- */
+.load-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 3px;
+    padding-top: 3px;
+    border-top: 1px solid var(--border);
+}
+.load-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+.load-item .load-label {
+    font-size: 9px;
+    color: var(--text-dim);
+}
+.load-item .load-value {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+/* ---- Tables ---- */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+.data-table th {
+    text-align: left;
+    padding: 4px 6px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+.data-table td {
+    padding: 3px 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+.data-table .num {
+    text-align: right;
+}
+
+.proc-tag {
+    font-size: 9px;
+    margin-left: 5px;
+    opacity: 0.85;
+}
+
+/* ---- Colour helpers ---- */
+.text-green { color: var(--accent-green); }
+.text-yellow { color: var(--accent-yellow); }
+.text-red { color: var(--accent-red); }
+.text-blue { color: var(--accent-blue); }
+.text-cyan { color: var(--accent-cyan); }
+.text-purple { color: var(--accent-purple); }
+.text-dim { color: var(--text-dim); }
+
+/* ---- Empty state ---- */
+.empty-state {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+/* ---- Docker status ---- */
+.docker-status {
+    display: inline-block;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+}
+.docker-status.up {
+    background: rgba(63, 185, 80, 0.12);
+    color: var(--accent-green);
+}
+.docker-status.other {
+    background: rgba(139, 148, 158, 0.12);
+    color: var(--text-secondary);
+}
+
+/* ---- Grid placement ---- */
+.cell-machine { grid-column: 1; grid-row: 1; }
+.cell-memory  { grid-column: 1; grid-row: 2; }
+.cell-cpu     { grid-column: 1; grid-row: 3; overflow: hidden; }
+.cell-cpu .card-body { overflow-y: hidden; padding: 4px 10px; }
+.cell-cpu-graph  { grid-column: 2; grid-row: 1 / 3; }
+.cell-mem-graph  { grid-column: 3; grid-row: 1 / 3; }
+.cell-processes  { grid-column: 2 / 4; grid-row: 3; overflow: hidden; }
+.cell-processes .card-body { overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ---- Top Bar ---- -->
+<div class="top-bar">
+    <h1>
+        <span class="dot" id="pulse-dot"></span>
+        Server Monitor
+        <span id="hostname" style="font-weight:400; color:var(--text-secondary); margin-left:4px;"></span>
+    </h1>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <span class="meta" id="uptime"></span>
+        <span class="connection-status connected" id="conn-status">Connected</span>
+    </div>
+</div>
+
+<!-- ---- Main Grid ---- -->
+<div class="main-grid">
+
+    <!-- Left column -->
+    <div class="card cell-machine">
+        <div class="card-header">
+            <h2>Machine &amp; OS</h2>
+            <span class="badge" id="platform-badge"></span>
+        </div>
+        <div class="card-body">
+            <div class="info-grid" id="machine-info"></div>
+        </div>
+    </div>
+
+    <div class="card cell-memory">
+        <div class="card-header">
+            <h2>Memory</h2>
+        </div>
+        <div class="card-body" id="memory-info"></div>
+    </div>
+
+    <div class="card cell-cpu">
+        <div class="card-header">
+            <h2>CPU</h2>
+            <span class="badge" id="cpu-badge"></span>
+        </div>
+        <div class="card-body" id="cpu-info"></div>
+    </div>
+
+    <!-- Graphs -->
+    <div class="card cell-cpu-graph">
+        <div class="card-header">
+            <h2>CPU History</h2>
+            <span class="badge">2 min</span>
+        </div>
+        <div class="card-body" style="padding:6px;">
+            <canvas id="cpu-graph" style="width:100%;height:100%;display:block;"></canvas>
+        </div>
+    </div>
+
+    <div class="card cell-mem-graph">
+        <div class="card-header">
+            <h2>Memory History</h2>
+            <span class="badge">2 min</span>
+        </div>
+        <div class="card-body" style="padding:6px;">
+            <canvas id="mem-graph" style="width:100%;height:100%;display:block;"></canvas>
+        </div>
+    </div>
+
+    <!-- Processes -->
+    <div class="card cell-processes">
+        <div class="card-header">
+            <h2>Top Processes</h2>
+            <span class="badge" id="proc-badge">by CPU</span>
+        </div>
+        <div class="card-body" style="padding:0;" id="process-table"></div>
+    </div>
+
+</div><!-- /main-grid -->
+
+</div><!-- /page -->
+
+<script>
+/* ---- History ---- */
+const HISTORY_MAX = 60;
+const cpuHistory = [];
+const memHistory = [];
+
+/* ---- Helpers ---- */
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+}
+
+function barColour(pct) {
+    if (pct < 50) return 'var(--accent-green)';
+    if (pct < 80) return 'var(--accent-yellow)';
+    return 'var(--accent-red)';
+}
+
+function textColourClass(pct) {
+    if (pct < 50) return 'text-green';
+    if (pct < 80) return 'text-yellow';
+    return 'text-red';
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/* ---- Renderers ---- */
+function renderMachine(m) {
+    const el = document.getElementById('machine-info');
+    document.getElementById('hostname').textContent = m.hostname;
+    document.getElementById('platform-badge').textContent = m.platform + ' ' + m.architecture;
+    document.getElementById('uptime').textContent = 'up ' + m.uptime;
+
+    el.innerHTML = `
+        <div class="info-item">
+            <span class="label">Hostname</span>
+            <span class="value">${escapeHtml(m.hostname)}</span>
+        </div>
+        <div class="info-item">
+            <span class="label">OS Release</span>
+            <span class="value">${escapeHtml(m.os_release)}</span>
+        </div>
+        <div class="info-item">
+            <span class="label">CPU</span>
+            <span class="value">${escapeHtml(m.cpu_model)}</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Cores</span>
+            <span class="value">${m.cpu_cores_physical}P / ${m.cpu_cores_logical}L</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Memory</span>
+            <span class="value">${m.total_memory_gb} GiB</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Uptime</span>
+            <span class="value">${escapeHtml(m.uptime)}</span>
+        </div>
+    `;
+}
+
+function renderMemory(mem) {
+    const el = document.getElementById('memory-info');
+    const usedStr = formatBytes(mem.used);
+    const totalStr = formatBytes(mem.total);
+
+    let html = `
+        <div class="memory-section">
+            <div class="mem-label">
+                <div>
+                    <span class="mem-title">Physical</span>
+                    <span class="mem-detail">&nbsp;${usedStr} / ${totalStr}</span>
+                </div>
+                <span class="mem-pct ${textColourClass(mem.percent)}">${mem.percent.toFixed(1)}%</span>
+            </div>
+            <div class="bar-container bar-large">
+                <div class="bar-fill" style="width:${mem.percent}%; background:${barColour(mem.percent)}"></div>
+            </div>
+        </div>
+    `;
+
+    // Breakdown: App (active), Wired, Compressed
+    if (mem.active || mem.wired || mem.compressed) {
+        const parts = [];
+        if (mem.active) parts.push('App: ' + formatBytes(mem.active));
+        if (mem.wired) parts.push('Wired: ' + formatBytes(mem.wired));
+        if (mem.compressed) parts.push('Compressed: ' + formatBytes(mem.compressed));
+        html += `<div style="font-size:10px;font-family:var(--font-mono);color:var(--text-dim);margin-bottom:6px;">${parts.join(' &nbsp;\u2022&nbsp; ')}</div>`;
+    }
+
+    if (mem.swap_total > 0) {
+        const swapUsedStr = formatBytes(mem.swap_used);
+        const swapTotalStr = formatBytes(mem.swap_total);
+        html += `
+            <div class="memory-section">
+                <div class="mem-label">
+                    <div>
+                        <span class="mem-title">Swap</span>
+                        <span class="mem-detail">&nbsp;${swapUsedStr} / ${swapTotalStr}</span>
+                    </div>
+                    <span class="mem-pct ${textColourClass(mem.swap_percent)}">${mem.swap_percent.toFixed(1)}%</span>
+                </div>
+                <div class="bar-container bar-large">
+                    <div class="bar-fill" style="width:${mem.swap_percent}%; background:${barColour(mem.swap_percent)}"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    el.innerHTML = html;
+}
+
+function renderCPU(cpu) {
+    const el = document.getElementById('cpu-info');
+    document.getElementById('cpu-badge').textContent =
+        cpu.per_core.length + ' cores';
+
+    let html = `
+        <div class="cpu-overall">
+            <div class="label-row">
+                <span class="title">Overall</span>
+                <span class="value ${textColourClass(cpu.overall)}">${cpu.overall.toFixed(1)}%</span>
+            </div>
+            <div class="bar-container bar-large">
+                <div class="bar-fill" style="width:${cpu.overall}%; background:${barColour(cpu.overall)}"></div>
+            </div>
+        </div>
+        <div class="cpu-cores">
+    `;
+
+    for (let i = 0; i < cpu.per_core.length; i++) {
+        const pct = cpu.per_core[i];
+        html += `
+            <div class="core-row">
+                <span class="core-label">${i}</span>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width:${pct}%; background:${barColour(pct)}"></div>
+                </div>
+                <span class="core-pct ${textColourClass(pct)}">${pct.toFixed(0)}%</span>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+
+    if (cpu.load_average) {
+        const la = cpu.load_average;
+        html += `
+            <div class="load-row">
+                <div class="load-item">
+                    <span class="load-label">1 min</span>
+                    <span class="load-value">${la['1min']}</span>
+                </div>
+                <div class="load-item">
+                    <span class="load-label">5 min</span>
+                    <span class="load-value">${la['5min']}</span>
+                </div>
+                <div class="load-item">
+                    <span class="load-label">15 min</span>
+                    <span class="load-value">${la['15min']}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    el.innerHTML = html;
+}
+
+// Names of VM host processes to hide when Docker containers are present
+const _VM_HOSTS = [
+    'com.apple.virtualization.virtualmachine',
+    'vfkit',
+    'qemu-system-',
+];
+
+function _isVmHost(name) {
+    const lower = name.toLowerCase();
+    return _VM_HOSTS.some(h => lower.includes(h));
+}
+
+function _parseDockerCpu(s) {
+    // "399.59%" -> 399.59
+    return parseFloat((s || '0').replace('%', '')) || 0;
+}
+
+function _parseDockerMem(s) {
+    // "27.18MiB / 7.653GiB" -> { display: "27.2 MiB", bytes: 28491612 }
+    if (!s || s === 'N/A') return { display: '', bytes: 0 };
+    const used = s.split('/')[0].trim();
+    const bytes = _parseMemToBytes(used);
+    return { display: used, bytes: bytes };
+}
+
+function _parseMemToBytes(s) {
+    // "27.18MiB" -> bytes
+    const match = s.match(/([\d.]+)\s*(KiB|MiB|GiB|TiB|kB|MB|GB|TB)/i);
+    if (!match) return 0;
+    const val = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+    const multipliers = {
+        'kib': 1024, 'kb': 1000,
+        'mib': 1024*1024, 'mb': 1000*1000,
+        'gib': 1024*1024*1024, 'gb': 1000*1000*1000,
+        'tib': 1024*1024*1024*1024, 'tb': 1000*1000*1000*1000,
+    };
+    return val * (multipliers[unit] || 0);
+}
+
+function _formatBytes(bytes) {
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KiB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MiB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
+}
+
+function renderProcesses(procs, dockerContainers, data) {
+    const el = document.getElementById('process-table');
+    const hasDocker = dockerContainers && dockerContainers.length > 0;
+
+    // Build merged list
+    let rows = [];
+
+    const totalMemBytes = (data && data.memory) ? data.memory.total : 1;
+    const cores = (data && data.cpu && data.cpu.per_core) ? data.cpu.per_core.length : 1;
+
+    // Add host processes, filtering out the VM host when Docker is present
+    for (const p of procs) {
+        if (hasDocker && _isVmHost(p.name)) continue;
+        const memBytes = p.memory_bytes || 0;
+        rows.push({
+            name: p.name,
+            tag: p.tag || '',
+            cpu: p.cpu_percent,
+            memPct: p.memory_percent,
+            memDisplay: memBytes > 0 ? _formatBytes(memBytes) : p.memory_percent.toFixed(1) + '%',
+            source: p.user || '',
+            isDocker: false,
+        });
+    }
+
+    // Add Docker containers — expand into internal processes where available
+    if (hasDocker) {
+        for (const c of dockerContainers) {
+            const cpu = _parseDockerCpu(c.cpu);
+            const mem = _parseDockerMem(c.memory);
+            const memPct = totalMemBytes > 0 ? (mem.bytes / totalMemBytes) * 100 : 0;
+            const innerProcs = c.processes || [];
+
+            if (innerProcs.length > 1) {
+                // Group internal processes by name
+                const groups = {};
+                for (const p of innerProcs) {
+                    groups[p.name] = (groups[p.name] || 0) + 1;
+                }
+                // Distribute container resources proportionally by count
+                const totalInner = innerProcs.length;
+                for (const [name, count] of Object.entries(groups)) {
+                    const fraction = count / totalInner;
+                    const suffix = count > 1 ? ` (x${count})` : '';
+                    rows.push({
+                        name: name + suffix,
+                        cpu: Math.round(cpu * fraction * 10) / 10,
+                        memPct: memPct * fraction,
+                        memDisplay: _formatBytes(mem.bytes * fraction),
+                        source: c.name,
+                        isDocker: true,
+                    });
+                }
+            } else {
+                // Single process or no process info — show container as-is
+                const displayName = innerProcs.length === 1 ? innerProcs[0].name : c.name;
+                rows.push({
+                    name: displayName,
+                    cpu: cpu,
+                    memPct: memPct,
+                    memDisplay: mem.display,
+                    source: c.name,
+                    isDocker: true,
+                });
+            }
+        }
+    }
+
+    // Sort by combined resource usage (CPU weight + memory weight)
+    rows.sort((a, b) => ((b.cpu / cores) + b.memPct) - ((a.cpu / cores) + a.memPct));
+
+    document.getElementById('proc-badge').textContent =
+        rows.length + ' shown';
+
+    if (rows.length === 0) {
+        el.innerHTML = '<div class="empty-state">No active processes</div>';
+        return;
+    }
+
+    let html = `<table class="data-table">
+        <thead><tr>
+            <th>Name</th>
+            <th class="num">CPU%</th>
+            <th>Mem</th>
+            <th>Source</th>
+        </tr></thead><tbody>`;
+
+    for (const r of rows) {
+        const nameClass = r.isDocker ? 'text-cyan' : '';
+        let tag = '';
+        if (r.isDocker) {
+            tag = '<span class="proc-tag" style="color:var(--accent-cyan);">container</span>';
+        } else if (r.tag) {
+            tag = '<span class="proc-tag" style="color:var(--accent-green);">' + escapeHtml(r.tag) + '</span>';
+        }
+        html += `<tr>
+            <td class="${nameClass}">${escapeHtml(r.name)}${tag}</td>
+            <td class="num ${textColourClass(r.cpu)}">${r.cpu.toFixed(1)}</td>
+            <td>${escapeHtml(r.memDisplay)}</td>
+            <td class="text-dim">${escapeHtml(r.source)}</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+function renderDocker(containers) {
+    const el = document.getElementById('docker-table');
+    if (!el) return;
+    document.getElementById('docker-badge').textContent =
+        containers.length + ' running';
+
+    if (containers.length === 0) {
+        el.innerHTML = '<div class="empty-state">No Docker containers</div>';
+        return;
+    }
+
+    let html = `<table class="data-table">
+        <thead><tr>
+            <th>Name</th>
+            <th>Image</th>
+            <th>Status</th>
+            <th class="num">CPU</th>
+            <th>Memory</th>
+        </tr></thead><tbody>`;
+
+    for (const c of containers) {
+        const isUp = (c.status || '').toLowerCase().startsWith('up');
+        const statusCls = isUp ? 'up' : 'other';
+        html += `<tr>
+            <td class="text-cyan">${escapeHtml(c.name)}</td>
+            <td class="text-dim">${escapeHtml(c.image)}</td>
+            <td><span class="docker-status ${statusCls}">${escapeHtml(c.status || '')}</span></td>
+            <td class="num">${escapeHtml(c.cpu || '0%')}</td>
+            <td>${escapeHtml(c.memory || 'N/A')}</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+function renderNetwork(connections) {
+    const el = document.getElementById('network-table');
+    if (!el) return;
+    document.getElementById('network-badge').textContent =
+        connections.length + ' listening';
+
+    if (connections.length === 0) {
+        el.innerHTML = '<div class="empty-state">No external listening ports</div>';
+        return;
+    }
+
+    let html = `<table class="data-table">
+        <thead><tr>
+            <th class="num">Port</th>
+            <th>Address</th>
+            <th>Process</th>
+            <th class="num">PID</th>
+        </tr></thead><tbody>`;
+
+    for (const c of connections) {
+        html += `<tr>
+            <td class="num text-blue">${c.port}</td>
+            <td class="text-dim">${escapeHtml(c.local_address)}</td>
+            <td>${escapeHtml(c.process || '\u2014')}</td>
+            <td class="num text-dim">${c.pid || '\u2014'}</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+/* ---- Graph Rendering ---- */
+function drawGraph(canvasId, history, colour) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    if (rect.width === 0 || rect.height === 0) return;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const pad = { top: 6, right: 8, bottom: 16, left: 32 };
+    const gw = w - pad.left - pad.right;
+    const gh = h - pad.top - pad.bottom;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Grid lines and labels
+    ctx.strokeStyle = '#21262d';
+    ctx.fillStyle = '#6e7681';
+    ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--font-mono');
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (let pct = 0; pct <= 100; pct += 25) {
+        const y = pad.top + gh - (pct / 100) * gh;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + gw, y);
+        ctx.stroke();
+        ctx.fillText(pct + '%', pad.left - 4, y);
+    }
+
+    // Time labels
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const seconds = HISTORY_MAX * 2;
+    for (let s = 0; s <= seconds; s += 30) {
+        const x = pad.left + (s / seconds) * gw;
+        ctx.fillText('-' + (seconds - s) + 's', x, pad.top + gh + 2);
+    }
+
+    if (history.length < 2) return;
+
+    // Filled area
+    const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + gh);
+    gradient.addColorStop(0, colour + '40');
+    gradient.addColorStop(1, colour + '05');
+
+    const xStep = gw / (HISTORY_MAX - 1);
+    const xOffset = (HISTORY_MAX - history.length) * xStep;
+
+    ctx.beginPath();
+    ctx.moveTo(pad.left + xOffset, pad.top + gh);
+    for (let i = 0; i < history.length; i++) {
+        const x = pad.left + xOffset + i * xStep;
+        const y = pad.top + gh - (history[i] / 100) * gh;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(pad.left + xOffset + (history.length - 1) * xStep, pad.top + gh);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    for (let i = 0; i < history.length; i++) {
+        const x = pad.left + xOffset + i * xStep;
+        const y = pad.top + gh - (history[i] / 100) * gh;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Dot at current value
+    if (history.length > 0) {
+        const last = history[history.length - 1];
+        const lx = pad.left + xOffset + (history.length - 1) * xStep;
+        const ly = pad.top + gh - (last / 100) * gh;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = colour;
+        ctx.fill();
+    }
+}
+
+function updateGraphs(data) {
+    if (data.cpu) {
+        cpuHistory.push(data.cpu.overall);
+        if (cpuHistory.length > HISTORY_MAX) cpuHistory.shift();
+        drawGraph('cpu-graph', cpuHistory, '#58a6ff');
+    }
+    if (data.memory) {
+        memHistory.push(data.memory.percent);
+        if (memHistory.length > HISTORY_MAX) memHistory.shift();
+        drawGraph('mem-graph', memHistory, '#bc8cff');
+    }
+}
+
+/* ---- Update ---- */
+function updateDashboard(data) {
+    if (data.machine) renderMachine(data.machine);
+    if (data.memory) renderMemory(data.memory);
+    if (data.cpu) renderCPU(data.cpu);
+    updateGraphs(data);
+    renderProcesses(data.processes || [], data.docker || [], data);
+}
+
+/* ---- SSE Connection ---- */
+function connectSSE() {
+    const statusEl = document.getElementById('conn-status');
+    const dotEl = document.getElementById('pulse-dot');
+
+    const evtSource = new EventSource('/api/stream');
+
+    // Handle history replay — sent on connect to populate graphs immediately
+    evtSource.addEventListener('history', function(event) {
+        try {
+            const snapshots = JSON.parse(event.data);
+            // Clear existing history and replay
+            cpuHistory.length = 0;
+            memHistory.length = 0;
+            for (const data of snapshots) {
+                if (data.cpu) cpuHistory.push(data.cpu.overall);
+                if (data.memory) memHistory.push(data.memory.percent);
+            }
+            // Render the last snapshot fully and redraw graphs
+            if (snapshots.length > 0) {
+                updateDashboard(snapshots[snapshots.length - 1]);
+            }
+            drawGraph('cpu-graph', cpuHistory, '#58a6ff');
+            drawGraph('mem-graph', memHistory, '#bc8cff');
+        } catch (e) {
+            console.error('Failed to parse history:', e);
+        }
+    });
+
+    evtSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        } catch (e) {
+            console.error('Failed to parse SSE data:', e);
+        }
+    };
+
+    evtSource.onopen = function() {
+        statusEl.textContent = 'Connected';
+        statusEl.className = 'connection-status connected';
+        dotEl.style.background = 'var(--accent-green)';
+    };
+
+    evtSource.onerror = function() {
+        statusEl.textContent = 'Reconnecting\u2026';
+        statusEl.className = 'connection-status disconnected';
+        dotEl.style.background = 'var(--accent-red)';
+    };
+}
+
+/* ---- Init ---- */
+(function() {
+    connectSSE();
+
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            drawGraph('cpu-graph', cpuHistory, '#58a6ff');
+            drawGraph('mem-graph', memHistory, '#bc8cff');
+        }, 100);
+    });
+})();
+</script>
+</body>
+</html>

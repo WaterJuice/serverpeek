@@ -58,6 +58,8 @@ web-proc-info-server --host 127.0.0.1   # Bind to localhost only
 web-proc-info-server --help             # Show all options
 ```
 
+See the [Usage](usage.md) page for full details.
+
 ## How It Works
 
 web-proc-info-server starts an HTTP server that serves a single-page dashboard. A single background thread collects system snapshots every 2 seconds and shares them with all connected clients via Server-Sent Events (SSE). When no clients are connected, the collector sleeps. New clients receive the full 2-minute history buffer so graphs are populated immediately.
@@ -65,7 +67,3 @@ web-proc-info-server starts an HTTP server that serves a single-page dashboard. 
 System information is gathered using psutil (CPU, memory, processes) and Docker CLI subprocess calls (containers, internal processes). On macOS, memory usage excludes file cache (reports active + wired + compressed instead).
 
 The dashboard is a self-contained HTML page with embedded CSS and JavaScript — no build tools, no npm, no bundlers. Designed for kiosk use: everything fits in a single non-scrolling screen.
-
-## Licence
-
-Released under the [Unlicense](https://unlicense.org/) — public domain.
