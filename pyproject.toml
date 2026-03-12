@@ -14,7 +14,7 @@ authors = [
     { name = "WaterJuice" },
 ]
 description = "Live-updating web dashboard for server load, CPU, memory, processes, Docker, and network"
-readme = "ReadMe.md"
+readme = "README.md"
 keywords = ["monitoring", "dashboard", "server", "cpu", "memory", "processes", "docker", "network", "web"]
 classifiers = [
     "Development Status :: 4 - Beta",
