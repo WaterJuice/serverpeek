@@ -138,7 +138,7 @@ def get_machine_info() -> dict[str, Any]:
     uptime_seconds = time.time() - _boot_time
 
     return {
-        "hostname": uname.node,
+        "hostname": uname.node.split(".")[0],
         "platform": platform.system(),
         "os_version": uname.version,
         "os_release": uname.release,
