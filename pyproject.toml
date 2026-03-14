@@ -1,12 +1,12 @@
 [tool.hatch.build]
 # Include _version.py in builds even though it's gitignored (generated at build time)
-artifacts = ["web_proc_info_server/_version.py"]
+artifacts = ["serverpeek/_version.py"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["web_proc_info_server"]
+packages = ["serverpeek"]
 
 [project]
-name = "web-proc-info-server"
+name = "serverpeek"
 requires-python = ">=3.12"
 dynamic = ["version"]
 license = "Unlicense"
@@ -38,10 +38,10 @@ dependencies = [
 ]
 
 [project.urls]
-Source = "https://github.com/WaterJuice/web-proc-info-server"
+Source = "https://github.com/WaterJuice/serverpeek"
 
 [project.scripts]
-web-proc-info-server = "web_proc_info_server.cli:main"
+serverpeek = "serverpeek.cli:main"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]

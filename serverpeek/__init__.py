@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------------------
-#   web_proc_info_server
-#   --------------------
+#   serverpeek
+#   ----------
 #
 #   Live-updating web dashboard for server load, CPU, memory, processes, Docker,
 #   and network monitoring.

@@ -1,10 +1,10 @@
-# web-proc-info-server
+# serverpeek
 
 A live-updating web dashboard for server monitoring — CPU, memory, processes, Docker containers, and network ports in your browser.
 
 ## Why?
 
-Checking server health usually means SSH-ing in and running `htop`, `docker ps`, `ss -tlnp`, and half a dozen other commands. web-proc-info-server gives you all of that in a single, auto-refreshing browser dashboard that you can leave open on a second monitor.
+Checking server health usually means SSH-ing in and running `htop`, `docker ps`, `ss -tlnp`, and half a dozen other commands. serverpeek gives you all of that in a single, auto-refreshing browser dashboard that you can leave open on a second monitor.
 
 ## Features
 
@@ -33,19 +33,19 @@ Checking server health usually means SSH-ing in and running `htop`, `docker ps`,
 ### Install
 
 ```bash
-pip install web-proc-info-server
+pip install serverpeek
 ```
 
 Or run directly with uv:
 
 ```bash
-uvx web-proc-info-server
+uvx serverpeek
 ```
 
 ### Run
 
 ```bash
-web-proc-info-server
+serverpeek
 ```
 
 Then open [http://localhost:8080](http://localhost:8080) in your browser.
@@ -53,14 +53,14 @@ Then open [http://localhost:8080](http://localhost:8080) in your browser.
 ### Options
 
 ```bash
-web-proc-info-server --port 9090        # Custom port
-web-proc-info-server --host 127.0.0.1   # Bind to localhost only
-web-proc-info-server --help             # Show all options
+serverpeek --port 9090        # Custom port
+serverpeek --host 127.0.0.1   # Bind to localhost only
+serverpeek --help             # Show all options
 ```
 
 ## How It Works
 
-web-proc-info-server starts an HTTP server that serves a single-page dashboard. A single background thread collects system snapshots every 2 seconds and shares them with all connected clients via Server-Sent Events (SSE). When no clients are connected, the collector sleeps. New clients receive the full 2-minute history buffer so graphs are populated immediately.
+serverpeek starts an HTTP server that serves a single-page dashboard. A single background thread collects system snapshots every 2 seconds and shares them with all connected clients via Server-Sent Events (SSE). When no clients are connected, the collector sleeps. New clients receive the full 2-minute history buffer so graphs are populated immediately.
 
 System information is gathered using psutil (CPU, memory, processes) and Docker CLI subprocess calls (containers, internal processes). On macOS, memory usage excludes file cache (reports active + wired + compressed instead).
 

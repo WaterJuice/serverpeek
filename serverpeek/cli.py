@@ -2,7 +2,7 @@
 #   cli.py
 #   ------
 #
-#   CLI argument parsing and server launch for web-proc-info-server.
+#   CLI argument parsing and server launch for serverpeek.
 #
 #   (c) 2026 WaterJuice — Released under the Unlicense; see LICENSE.
 #
@@ -48,9 +48,9 @@ For more information, please refer to <https://unlicense.org/>"""
 def _create_parser() -> ArgsParser:
     """Build the argument parser."""
     parser = ArgsParser(
-        prog="web-proc-info-server",
+        prog="serverpeek",
         description="Live-updating web dashboard for server monitoring.",
-        version=f"web-proc-info-server: {VERSION_STR}\npython: {sys.version.split()[0]}",
+        version=f"serverpeek: {VERSION_STR}\npython: {sys.version.split()[0]}",
     )
 
     parser.add_argument(
@@ -122,7 +122,7 @@ def _main_inner() -> int:
     args: Namespace = parser.parse()
 
     print(
-        f"web-proc-info-server {VERSION_STR}",
+        f"serverpeek {VERSION_STR}",
         file=sys.stderr,
     )
     print(

@@ -4,7 +4,7 @@ This file provides guidance for AI agents working on this project.
 
 ## Project Overview
 
-web-proc-info-server is a live-updating web dashboard for server monitoring. It displays CPU usage (per core), memory usage, machine and OS information, high-CPU processes, Docker containers, and open network ports. The server uses Server-Sent Events (SSE) for real-time updates to a single-page web dashboard.
+serverpeek is a live-updating web dashboard for server monitoring. It displays CPU usage (per core), memory usage, machine and OS information, high-CPU processes, Docker containers, and open network ports. The server uses Server-Sent Events (SSE) for real-time updates to a single-page web dashboard.
 
 ## Language and Spelling
 
@@ -80,9 +80,9 @@ make dev        # Just create dev (.venv) setup
 ## Project Structure
 
 ```
-web_proc_info_server/
+serverpeek/
 ├── __init__.py       # Package init, exports __version__
-├── __main__.py       # Entry point for python -m web_proc_info_server
+├── __main__.py       # Entry point for python -m serverpeek
 ├── version.py        # Version string handling
 ├── argbuilder.py     # Custom argparse wrapper (from cal-publish-python)
 ├── cli.py            # CLI argument parsing and server launch
@@ -132,7 +132,7 @@ web_proc_info_server/
 After making changes:
 1. Run `make check` to verify linting and types pass
 2. Run `make build` to verify the full build works
-3. Test with `uv run web-proc-info-server` to verify the server works
+3. Test with `uv run serverpeek` to verify the server works
 
 ## Versioning
 

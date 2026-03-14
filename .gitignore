@@ -40,7 +40,7 @@ htmlcov/
 /html
 
 # Generated
-web_proc_info_server/_version.py
+serverpeek/_version.py
 
 # macOS
 .DS_Store

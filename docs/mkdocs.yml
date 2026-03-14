@@ -1,5 +1,5 @@
 INHERIT: !ENV THEME_STD
-site_name: web-proc-info-server
+site_name: serverpeek
 
 markdown_extensions:
   - pymdownx.snippets:

@@ -1,11 +1,11 @@
 # Usage
 
-web-proc-info-server provides a single command that starts the monitoring dashboard.
+serverpeek provides a single command that starts the monitoring dashboard.
 
 ## Starting the server
 
 ```bash
-web-proc-info-server
+serverpeek
 ```
 
 This starts the server on `0.0.0.0:8080` by default. Open [http://localhost:8080](http://localhost:8080) in your browser to view the dashboard.
@@ -24,13 +24,13 @@ This starts the server on `0.0.0.0:8080` by default. Open [http://localhost:8080
 
 ```bash
 # Start on a custom port
-web-proc-info-server --port 9090
+serverpeek --port 9090
 
 # Bind to localhost only (not accessible from other machines)
-web-proc-info-server --host 127.0.0.1
+serverpeek --host 127.0.0.1
 
 # Custom port and host
-web-proc-info-server -H 127.0.0.1 -p 3000
+serverpeek -H 127.0.0.1 -p 3000
 ```
 
 ## Dashboard Sections
@@ -132,15 +132,15 @@ The `/api/snapshot` endpoint returns JSON with these top-level keys:
 
 ```bash
 # Run directly without installing
-uvx web-proc-info-server
+uvx serverpeek
 
 # Or with options
-uvx web-proc-info-server --port 9090
+uvx serverpeek --port 9090
 ```
 
 ## Running as a module
 
 ```bash
-python -m web_proc_info_server
-python -m web_proc_info_server --port 9090
+python -m serverpeek
+python -m serverpeek --port 9090
 ```

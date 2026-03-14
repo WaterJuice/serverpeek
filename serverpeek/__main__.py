@@ -2,7 +2,7 @@
 #   __main__.py
 #   -----------
 #
-#   Entry point for python -m web_proc_info_server.
+#   Entry point for python -m serverpeek.
 #
 #   (c) 2026 WaterJuice — Released under the Unlicense; see LICENSE.
 #
@@ -22,7 +22,7 @@ if sys.version_info < MIN_PYTHON:
     )
     sys.exit(1)
 
-from web_proc_info_server.cli import main  # noqa: E402
+from serverpeek.cli import main  # noqa: E402
 
 if __name__ == "__main__":
     raise SystemExit(main())

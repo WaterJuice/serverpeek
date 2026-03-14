@@ -1,4 +1,4 @@
-MODULE_NAME="web_proc_info_server"
+MODULE_NAME="serverpeek"
 
 # Default target: print usage message
 .PHONY: help
@@ -20,7 +20,7 @@ VERSION_STR=$(shell git describe --tags --always 2>/dev/null | sed 's/-/.post.de
 # Generate _version.py with the current version
 .PHONY: version
 version:
-	@echo '__version__ = "$(VERSION_STR)"' > web_proc_info_server/_version.py
+	@echo '__version__ = "$(VERSION_STR)"' > serverpeek/_version.py
 
 # Build the project
 .PHONY: build
@@ -28,7 +28,7 @@ build: check-dependencies format-check lint version docs
 	rm -rf output/
 	uv build --out-dir output
 	rm -f output/*.tar.gz
-	cd html && uv run python -m zipfile -c ../output/web-proc-info-server-$(VERSION_STR)-docs.zip .
+	cd html && uv run python -m zipfile -c ../output/serverpeek-$(VERSION_STR)-docs.zip .
 
 # Publish (requires output/ from make build)
 .PHONY: publish
@@ -39,7 +39,7 @@ publish: check-dependencies
 .PHONY: docs-help
 docs-help: check-dependencies version
 	@mkdir -p docs/mkdocs/_include
-	COLUMNS=80 uv run web-proc-info-server --help > docs/mkdocs/_include/help_main.txt
+	COLUMNS=80 uv run serverpeek --help > docs/mkdocs/_include/help_main.txt
 
 # Build the documentation
 .PHONY: docs

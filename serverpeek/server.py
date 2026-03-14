@@ -26,8 +26,8 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
-from web_proc_info_server.system_info import get_snapshot
-from web_proc_info_server.system_info import initialise
+from serverpeek.system_info import get_snapshot
+from serverpeek.system_info import initialise
 
 # ----------------------------------------------------------------------------------------
 #   Constants
