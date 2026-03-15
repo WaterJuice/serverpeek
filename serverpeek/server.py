@@ -36,6 +36,7 @@ from serverpeek.system_info import initialise
 _WEB_DIR = pathlib.Path(__file__).parent / "web"
 _UPDATE_INTERVAL = 2.0
 _HISTORY_MAX = 60
+_LINGER_DURATION = 60.0
 
 # ----------------------------------------------------------------------------------------
 #   Snapshot Collector
@@ -48,9 +49,10 @@ class _SnapshotCollector:
 
     All SSE clients read from the same shared snapshot, so the server's
     resource usage is constant regardless of how many clients are connected.
-    The collector sleeps when no clients are connected and automatically
-    wakes when a new client arrives.  A ring buffer of recent snapshots
-    lets new clients receive full graph history immediately.
+    When all clients disconnect the collector lingers for 60 seconds so
+    that a quickly-reconnecting client gets seamless history.  After the
+    linger window expires the history is cleared and the collector sleeps
+    until a new client arrives — ensuring fresh data with no stale graphs.
     """
 
     def __init__(self) -> None:
@@ -60,6 +62,8 @@ class _SnapshotCollector:
         self._update_event = threading.Event()
         self._clients = 0
         self._wake_event = threading.Event()
+        self._linger_since: float | None = None
+        self._was_sleeping = True
 
     # ------------------------------------------------------------------------------------
     def start(self) -> None:
@@ -69,7 +73,13 @@ class _SnapshotCollector:
 
     # ------------------------------------------------------------------------------------
     def _run(self) -> None:
-        """Continuously collect snapshots while clients are connected."""
+        """Continuously collect snapshots while clients are connected.
+
+        After the last client disconnects the collector lingers for
+        ``_LINGER_DURATION`` seconds so that a reconnecting client gets
+        seamless history.  Once the linger window expires the history is
+        cleared and the collector sleeps until a new client arrives.
+        """
         while True:
             # Sleep until at least one client is connected
             self._wake_event.wait()
@@ -79,6 +89,19 @@ class _SnapshotCollector:
             with self._lock:
                 self._history.append(json_data)
                 self._latest_json = json_data
+
+                # Check if we are lingering with no clients
+                if self._clients == 0 and self._linger_since is not None:
+                    if time.time() - self._linger_since >= _LINGER_DURATION:
+                        # Linger period expired — clear stale data and sleep
+                        self._history.clear()
+                        self._latest_json = "{}"
+                        self._linger_since = None
+                        self._was_sleeping = True
+                        self._wake_event.clear()
+                        print("Linger expired — collector sleeping")
+                        continue
+
             # Wake all SSE clients waiting for an update
             self._update_event.set()
             self._update_event.clear()
@@ -89,15 +112,28 @@ class _SnapshotCollector:
         """Register a new SSE client — wakes the collector if sleeping."""
         with self._lock:
             self._clients += 1
+            self._linger_since = None
+            if self._was_sleeping:
+                # Collector was idle — discard any stale history
+                self._history.clear()
+                self._latest_json = "{}"
+                self._was_sleeping = False
+            count = self._clients
         self._wake_event.set()
+        print(f"Client connected ({count} active)")
 
     # ------------------------------------------------------------------------------------
     def client_disconnect(self) -> None:
-        """Unregister an SSE client — collector sleeps when count hits zero."""
+        """Unregister an SSE client — collector lingers when count hits zero."""
         with self._lock:
             self._clients = max(0, self._clients - 1)
-            if self._clients == 0:
-                self._wake_event.clear()
+            count = self._clients
+            if count == 0:
+                self._linger_since = time.time()
+        if count == 0:
+            print("All clients disconnected — lingering for 60s before sleeping")
+        else:
+            print(f"Client disconnected ({count} active)")
 
     # ------------------------------------------------------------------------------------
     def get_json(self) -> str:

@@ -121,14 +121,17 @@ def _main_inner() -> int:
     parser = _create_parser()
     args: Namespace = parser.parse()
 
-    print(
-        f"serverpeek {VERSION_STR}",
-        file=sys.stderr,
-    )
-    print(
-        f"Serving on http://{args.host}:{args.port}",
-        file=sys.stderr,
-    )
+    print(f"serverpeek {VERSION_STR}", file=sys.stderr)
+    if args.host in ("0.0.0.0", "::"):
+        print(f"Listening on all interfaces, port {args.port}", file=sys.stderr)
+        print(f"  http://localhost:{args.port}", file=sys.stderr)
+        import socket
+
+        hostname = socket.gethostname()
+        if hostname and hostname != "localhost":
+            print(f"  http://{hostname}:{args.port}", file=sys.stderr)
+    else:
+        print(f"Serving on http://{args.host}:{args.port}", file=sys.stderr)
 
     run_server(host=args.host, port=args.port)
     return 0
