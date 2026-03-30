@@ -483,6 +483,7 @@ function escapeHtml(str) {
 
 /* ---- Renderers ---- */
 function renderMachine(m) {
+    window._machineInfo = m;
     const el = document.getElementById('machine-info');
     document.getElementById('hostname').textContent = m.hostname;
     document.getElementById('platform-badge').textContent = m.platform + ' ' + m.architecture;
@@ -569,8 +570,11 @@ function renderMemory(mem) {
 
 function renderCPU(cpu) {
     const el = document.getElementById('cpu-info');
-    document.getElementById('cpu-badge').textContent =
-        cpu.per_core.length + ' cores';
+    // Show per-core bars only when real per-core data is available (>1 entry).
+    // On macOS without cgo, only aggregate CPU is available (1 entry).
+    const hasPerCore = cpu.per_core.length > 1;
+    const coreCount = hasPerCore ? cpu.per_core.length : (window._machineInfo ? window._machineInfo.cpu_cores_logical : cpu.per_core.length);
+    document.getElementById('cpu-badge').textContent = coreCount + ' cores';
 
     let html = `
         <div class="cpu-overall">
@@ -582,23 +586,24 @@ function renderCPU(cpu) {
                 <div class="bar-fill" style="width:${cpu.overall}%; background:${barColour(cpu.overall)}"></div>
             </div>
         </div>
-        <div class="cpu-cores">
     `;
 
-    for (let i = 0; i < cpu.per_core.length; i++) {
-        const pct = cpu.per_core[i];
-        html += `
-            <div class="core-row">
-                <span class="core-label">${i}</span>
-                <div class="bar-container">
-                    <div class="bar-fill" style="width:${pct}%; background:${barColour(pct)}"></div>
+    if (hasPerCore) {
+        html += '<div class="cpu-cores">';
+        for (let i = 0; i < cpu.per_core.length; i++) {
+            const pct = cpu.per_core[i];
+            html += `
+                <div class="core-row">
+                    <span class="core-label">${i}</span>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width:${pct}%; background:${barColour(pct)}"></div>
+                    </div>
+                    <span class="core-pct ${textColourClass(pct)}">${pct.toFixed(0)}%</span>
                 </div>
-                <span class="core-pct ${textColourClass(pct)}">${pct.toFixed(0)}%</span>
-            </div>
-        `;
+            `;
+        }
+        html += '</div>';
     }
-
-    html += '</div>';
 
     if (cpu.load_average) {
         const la = cpu.load_average;

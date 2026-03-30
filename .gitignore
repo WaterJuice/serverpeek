@@ -1,20 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
+# Go
 dist/
-eggs/
-.eggs/
-*.egg-info/
-*.egg
 
-# Virtual environments
+# Virtual environments (for uv dev tools)
 .venv/
 venv/
-ENV/
 
 # IDE
 .idea/
@@ -23,24 +12,9 @@ ENV/
 *.swo
 *~
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Type checking
-.pyright/
-.mypy_cache/
-
-# Linting
-.ruff_cache/
-
 # Build output
 /output
 /html
-
-# Generated
-serverpeek/_version.py
 
 # macOS
 .DS_Store

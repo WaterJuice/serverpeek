@@ -9,7 +9,7 @@ Checking server health usually means SSH-ing in and running `htop`, `docker ps`,
 ## Features
 
 - **Machine & OS info** — hostname, platform, architecture, CPU model, uptime
-- **CPU usage** — overall and per-core with colour-coded bars (green → yellow → red)
+- **CPU usage** — overall with colour-coded bar (green → yellow → red), per-core bars on Linux
 - **Memory usage** — physical and swap with macOS breakdown (app/wired/compressed), excludes file cache
 - **Load average** — 1, 5, and 15 minute load averages
 - **Top processes** — sorted by combined CPU + memory usage, grouped by parent process
@@ -18,15 +18,10 @@ Checking server health usually means SSH-ing in and running `htop`, `docker ps`,
 - **Listening ports** — non-localhost network ports with associated process names
 - **CPU & memory history graphs** — 2 minute rolling history, shared across all viewers
 - **Live updates** — Server-Sent Events push new data every 2 seconds
-- **Efficient** — single background collector thread, sleeps when no clients are connected
+- **Efficient** — single background collector, sleeps when no clients are connected
 - **Beautiful dark theme** — clean, modern kiosk-friendly dashboard (fits in one screen, no scrolling)
 - **Zero config** — just run it and open the URL
-
-## Requirements
-
-- Python 3.12+
-- psutil (installed automatically)
-- Docker CLI (optional, for container monitoring)
+- **Single binary** — statically-linked Go executable, no runtime dependencies
 
 ## Quick Start
 
@@ -62,8 +57,8 @@ See the [Usage](usage.md) page for full details.
 
 ## How It Works
 
-serverpeek starts an HTTP server that serves a single-page dashboard. A single background thread collects system snapshots every 2 seconds and shares them with all connected clients via Server-Sent Events (SSE). When no clients are connected, the collector sleeps. New clients receive the full 2-minute history buffer so graphs are populated immediately.
+serverpeek starts an HTTP server that serves a single-page dashboard. A background goroutine collects system snapshots every 2 seconds and shares them with all connected clients via Server-Sent Events (SSE). When no clients are connected, the collector sleeps. New clients receive the full 2-minute history buffer so graphs are populated immediately.
 
-System information is gathered using psutil (CPU, memory, processes) and Docker CLI subprocess calls (containers, internal processes). On macOS, memory usage excludes file cache (reports active + wired + compressed instead).
+System information is gathered using OS-native interfaces (/proc on Linux, sysctl/vm_stat on macOS) and subprocess calls for Docker and network port information. On macOS, memory usage excludes file cache (reports active + wired + compressed instead).
 
-The dashboard is a self-contained HTML page with embedded CSS and JavaScript — no build tools, no npm, no bundlers. Designed for kiosk use: everything fits in a single non-scrolling screen.
+The dashboard is a self-contained HTML page with embedded CSS and JavaScript — compiled into the binary via `go:embed`. No build tools, no npm, no bundlers. Designed for kiosk use: everything fits in a single non-scrolling screen.

@@ -51,7 +51,7 @@ Displays static machine information:
 Shows real-time CPU usage:
 
 - **Overall CPU** — aggregate usage across all cores with a colour-coded bar
-- **Per-core bars** — individual usage for each logical core
+- **Per-core bars** — individual usage for each logical core (Linux only; macOS shows aggregate only because per-core counters require cgo)
 - **Load average** — 1, 5, and 15 minute system load averages
 
 Bars are colour-coded: green (< 50%), yellow (50–80%), red (> 80%).
@@ -104,7 +104,7 @@ Ports bound only to localhost (127.0.0.1, ::1) are filtered out.
 
 ## API Endpoints
 
-The server exposes two API endpoints:
+The server exposes three endpoints:
 
 | Endpoint         | Description                                              |
 |------------------|----------------------------------------------------------|
@@ -136,11 +136,4 @@ uvx serverpeek
 
 # Or with options
 uvx serverpeek --port 9090
-```
-
-## Running as a module
-
-```bash
-python -m serverpeek
-python -m serverpeek --port 9090
 ```
