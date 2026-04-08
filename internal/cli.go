@@ -180,7 +180,7 @@ func startServerCmd(version string, host string, port int) {
 	}
 
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
-	startServer(addr, isTTY)
+	startServer(addr, version, isTTY)
 }
 
 // ---------------------------------------------------------------------------------------

@@ -34,6 +34,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"os"
 	"os/signal"
@@ -242,7 +243,8 @@ func (c *snapshotCollector) waitForUpdate() <-chan struct{} {
 
 // dashboardServer is the HTTP handler for the monitoring dashboard.
 type dashboardServer struct {
-	collector *snapshotCollector
+	collector    *snapshotCollector
+	renderedHTML string
 }
 
 // ---------------------------------------------------------------------------------------
@@ -271,7 +273,7 @@ func (s *dashboardServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *dashboardServer) handleIndex(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Write([]byte(indexHTML))
+	w.Write([]byte(s.renderedHTML))
 }
 
 // ---------------------------------------------------------------------------------------
@@ -335,7 +337,7 @@ func (s *dashboardServer) handleSSE(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------------------------------
 // startServer creates and starts the monitoring HTTP server.
-func startServer(addr string, isTTY bool) {
+func startServer(addr string, version string, isTTY bool) {
 	// Initialise CPU tracking
 	Initialise()
 
@@ -346,7 +348,10 @@ func startServer(addr string, isTTY bool) {
 	collector := newSnapshotCollector(isTTY)
 	collector.start()
 
-	srv := &dashboardServer{collector: collector}
+	srv := &dashboardServer{
+		collector:    collector,
+		renderedHTML: strings.Replace(indexHTML, "{{VERSION}}", html.EscapeString(version), 1),
+	}
 
 	httpServer := &http.Server{
 		Addr:    addr,

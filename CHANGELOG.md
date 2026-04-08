@@ -1,4 +1,4 @@
-# serverpeek 1.0.0 Beta 5 - 30 Mar 2026
+# serverpeek 1.0.0 Beta 6 - 8 Apr 2026
 
 - Rewritten from Python to Go for single-binary distribution
 - Distributed as platform-specific Python wheels via bin2whl (no Python runtime needed)

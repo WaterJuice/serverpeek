@@ -66,12 +66,17 @@ func getBootTime() time.Time {
 // ---------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------
-// getOSInfo returns the macOS version and kernel release.
+// getOSInfo returns the macOS version and product release.
 func getOSInfo() (version string, release string) {
 	version, _ = syscall.Sysctl("kern.version")
 	version = strings.TrimSpace(version)
-	release, _ = syscall.Sysctl("kern.osrelease")
+	release, _ = syscall.Sysctl("kern.osproductversion")
 	release = strings.TrimSpace(release)
+	if release == "" {
+		// Fallback to kernel release if product version unavailable
+		release, _ = syscall.Sysctl("kern.osrelease")
+		release = strings.TrimSpace(release)
+	}
 	return
 }
 
