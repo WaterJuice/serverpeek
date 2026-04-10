@@ -32,10 +32,8 @@ go-build:
 
 # Build platform wheels + docs
 .PHONY: build
-build: check go-build docs
+build: check dev docs
 	rm -rf output/
-	uv --version 2>/dev/null && true || pip3 install uv
-	uv sync
 	uv run bin2whl -c wheel.json --version-str $(VERSION_STR)
 	cd html && python3 -m zipfile -c ../output/serverpeek-$(VERSION_STR)-docs.zip .
 

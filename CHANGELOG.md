@@ -1,16 +1,16 @@
-# serverpeek 1.0.0 Beta 6 - 8 Apr 2026
+# serverpeek 1.0.0 Beta 7 - 10 Apr 2026
 
-- Rewritten from Python to Go for single-binary distribution
-- Distributed as platform-specific Python wheels via bin2whl (no Python runtime needed)
-- Zero external dependencies — Go stdlib only
-- System info gathered via OS-native interfaces (/proc, sysctl, vm_stat, ps) instead of psutil
+- Live-updating web dashboard for server monitoring via Server-Sent Events
+- Dark-themed, kiosk-friendly single-page UI — no scrolling, fills the viewport
+- Monitors CPU usage (overall and per-core), memory, swap, and system uptime
+- Top processes sorted by combined CPU + memory usage, grouped by parent
+- Friendly process names for interpreters (Python, Node, Ruby, Perl, Java)
+- Docker container monitoring with stats and internal process expansion
+- Open network port detection via lsof (excludes localhost-only bindings)
+- Written in Go with zero external dependencies — stdlib only
+- Distributed as platform-specific Python wheels via bin2whl (`pip install serverpeek`)
 - Cross-compiled for macOS (arm64/amd64), Linux (arm64/amd64), Windows (arm64/amd64)
-- All existing features preserved: CPU, memory, processes, Docker, network monitoring
-- Web dashboard unchanged — same dark-themed kiosk-friendly UI
-
-# serverpeek 1.0.0 Beta 4 - 15 Mar 2026
-
-- Initial release
-- Live-updating web dashboard with CPU, memory, processes, Docker, and network monitoring
-- Server-Sent Events for real-time updates
-- Beautiful dark-themed responsive dashboard
+- Statically linked single binary — no Python runtime needed at execution time
+- Linux distro detection via /etc/os-release (e.g. "Ubuntu 24.04")
+- macOS version display using kern.osproductversion (e.g. "26.4")
+- Beta/dev ribbon overlay on dashboard

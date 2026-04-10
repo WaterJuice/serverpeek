@@ -58,19 +58,65 @@ func getBootTime() time.Time {
 // ---------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------
-// getOSInfo returns the OS version and kernel release from /proc.
+// getOSInfo returns the OS version string and a user-friendly distro release.
+// Prefers /etc/os-release (e.g. "Ubuntu 24.04") and falls back to the kernel
+// release from /proc/sys/kernel/osrelease when unavailable.
 func getOSInfo() (version string, release string) {
-	data, err := os.ReadFile("/proc/version")
-	if err != nil {
-		return "", ""
+	if data, err := os.ReadFile("/proc/version"); err == nil {
+		version = strings.TrimSpace(string(data))
 	}
-	version = strings.TrimSpace(string(data))
 
-	unameData, err := os.ReadFile("/proc/sys/kernel/osrelease")
-	if err == nil {
-		release = strings.TrimSpace(string(unameData))
+	release = readDistroRelease()
+	if release == "" {
+		if unameData, err := os.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
+			release = strings.TrimSpace(string(unameData))
+		}
 	}
 	return
+}
+
+// ---------------------------------------------------------------------------------------
+// readDistroRelease parses /etc/os-release and returns a short distro label
+// like "Ubuntu 24.04". Returns an empty string if the file is missing or
+// cannot be parsed into a meaningful name.
+func readDistroRelease() string {
+	// Try the standard locations in order.
+	candidates := []string{"/etc/os-release", "/usr/lib/os-release"}
+	var data []byte
+	for _, path := range candidates {
+		if d, err := os.ReadFile(path); err == nil {
+			data = d
+			break
+		}
+	}
+	if data == nil {
+		return ""
+	}
+
+	fields := make(map[string]string)
+	for _, line := range strings.Split(string(data), "\n") {
+		eq := strings.IndexByte(line, '=')
+		if eq < 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:eq])
+		val := strings.TrimSpace(line[eq+1:])
+		val = strings.Trim(val, `"'`)
+		fields[key] = val
+	}
+
+	name := fields["NAME"]
+	versionID := fields["VERSION_ID"]
+	if name != "" && versionID != "" {
+		return name + " " + versionID
+	}
+	if pretty := fields["PRETTY_NAME"]; pretty != "" {
+		return pretty
+	}
+	if name != "" {
+		return name
+	}
+	return ""
 }
 
 // ---------------------------------------------------------------------------------------
