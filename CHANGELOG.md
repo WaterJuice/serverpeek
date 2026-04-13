@@ -1,5 +1,6 @@
-# serverpeek 1.0.0 Beta 7 - 10 Apr 2026
+# serverpeek 1.0.0 - 14 Apr 2026
 
+- Initial release
 - Live-updating web dashboard for server monitoring via Server-Sent Events
 - Dark-themed, kiosk-friendly single-page UI — no scrolling, fills the viewport
 - Monitors CPU usage (overall and per-core), memory, swap, and system uptime
@@ -13,4 +14,3 @@
 - Statically linked single binary — no Python runtime needed at execution time
 - Linux distro detection via /etc/os-release (e.g. "Ubuntu 24.04")
 - macOS version display using kern.osproductversion (e.g. "26.4")
-- Beta/dev ribbon overlay on dashboard
