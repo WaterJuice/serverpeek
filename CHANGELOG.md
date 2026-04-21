@@ -1,3 +1,7 @@
+# serverpeek 1.1.0 - 21 Apr 2026
+
+- Collector now runs continuously instead of sleeping when no clients are connected, so new connections immediately see a populated history graph
+
 # serverpeek 1.0.0 - 14 Apr 2026
 
 - Initial release
