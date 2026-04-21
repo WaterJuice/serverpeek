@@ -5,9 +5,10 @@
 //
 //	HTTP server with Server-Sent Events (SSE) for live system monitoring.
 //	Serves the dashboard HTML and streams system snapshots to connected clients.
-//	A single background goroutine collects system data; all SSE clients share the
-//	same snapshot so resource usage does not increase with more connections.
-//	The collector sleeps when no clients are connected and wakes when one arrives.
+//	A single background goroutine collects system data continuously; all SSE clients
+//	share the same snapshot so resource usage does not increase with more connections.
+//	The collector always runs so the full history graph is available the moment a
+//	client connects.
 //
 //	Endpoints:
 //	  GET /              — dashboard HTML page (embedded via go:embed)
@@ -20,6 +21,7 @@
 //	---------------
 //	Mar 2026 - Created (Python)
 //	Mar 2026 - Rewritten in Go
+//	Apr 2026 - Collector always runs; removed sleep/linger logic
 //
 // ---------------------------------------------------------------------------------------
 package internal
@@ -62,7 +64,6 @@ var indexHTML string
 const (
 	updateInterval = 2 * time.Second
 	historyMax     = 60
-	lingerDuration = 60 * time.Second
 )
 
 // ---------------------------------------------------------------------------------------
@@ -74,28 +75,24 @@ const (
 // snapshotCollector collects system snapshots on a background goroutine.
 // All SSE clients read from the same shared snapshot, so the server's
 // resource usage is constant regardless of how many clients are connected.
+// The collector runs continuously so that history is always available when
+// a new client connects.
 type snapshotCollector struct {
-	mu          sync.Mutex
-	history     []string
-	latestJSON  string
-	updateCh    chan struct{} // guarded by mu
-	clients     int
-	wakeCh      chan struct{}
-	lingerSince time.Time
-	lingering   bool
-	wasSleeping bool
-	isTTY       bool
+	mu         sync.Mutex
+	history    []string
+	latestJSON string
+	updateCh   chan struct{} // guarded by mu
+	clients    int
+	isTTY      bool
 }
 
 // ---------------------------------------------------------------------------------------
 // newSnapshotCollector creates a new collector.
 func newSnapshotCollector(isTTY bool) *snapshotCollector {
 	return &snapshotCollector{
-		latestJSON:  "{}",
-		updateCh:    make(chan struct{}),
-		wakeCh:      make(chan struct{}, 1),
-		wasSleeping: true,
-		isTTY:       isTTY,
+		latestJSON: "{}",
+		updateCh:   make(chan struct{}),
+		isTTY:      isTTY,
 	}
 }
 
@@ -106,11 +103,9 @@ func (c *snapshotCollector) start() {
 }
 
 // ---------------------------------------------------------------------------------------
-// run continuously collects snapshots while clients are connected.
+// run continuously collects snapshots forever, regardless of client count.
 func (c *snapshotCollector) run() {
 	for {
-		<-c.wakeCh
-
 		snapshot := GetSnapshot()
 		jsonData, err := json.Marshal(snapshot)
 		if err != nil {
@@ -130,19 +125,6 @@ func (c *snapshotCollector) run() {
 		}
 		c.latestJSON = jsonStr
 
-		// Check if we are lingering with no clients
-		if c.clients == 0 && c.lingering {
-			if time.Since(c.lingerSince) >= lingerDuration {
-				c.history = nil
-				c.latestJSON = "{}"
-				c.lingering = false
-				c.wasSleeping = true
-				logInfo(c.isTTY, "Linger expired — collector sleeping")
-				c.mu.Unlock()
-				continue
-			}
-		}
-
 		// Notify waiting SSE clients (swap channel under lock to avoid race)
 		oldCh := c.updateCh
 		c.updateCh = make(chan struct{})
@@ -150,44 +132,22 @@ func (c *snapshotCollector) run() {
 		close(oldCh)
 
 		time.Sleep(updateInterval)
-
-		c.mu.Lock()
-		shouldWake := c.clients > 0 || c.lingering
-		c.mu.Unlock()
-		if shouldWake {
-			select {
-			case c.wakeCh <- struct{}{}:
-			default:
-			}
-		}
 	}
 }
 
 // ---------------------------------------------------------------------------------------
-// clientConnect registers a new SSE client — wakes the collector if sleeping.
+// clientConnect registers a new SSE client for logging.
 func (c *snapshotCollector) clientConnect() {
 	c.mu.Lock()
 	c.clients++
-	c.lingering = false
-	if c.wasSleeping {
-		c.history = nil
-		c.latestJSON = "{}"
-		c.wasSleeping = false
-	}
 	count := c.clients
 	c.mu.Unlock()
-
-	// Wake collector
-	select {
-	case c.wakeCh <- struct{}{}:
-	default:
-	}
 
 	logInfo(c.isTTY, "Client connected (%d active)", count)
 }
 
 // ---------------------------------------------------------------------------------------
-// clientDisconnect unregisters an SSE client — collector lingers when count hits zero.
+// clientDisconnect unregisters an SSE client for logging.
 func (c *snapshotCollector) clientDisconnect() {
 	c.mu.Lock()
 	c.clients--
@@ -195,17 +155,9 @@ func (c *snapshotCollector) clientDisconnect() {
 		c.clients = 0
 	}
 	count := c.clients
-	if count == 0 {
-		c.lingering = true
-		c.lingerSince = time.Now()
-	}
 	c.mu.Unlock()
 
-	if count == 0 {
-		logInfo(c.isTTY, "All clients disconnected — lingering for 60s before sleeping")
-	} else {
-		logInfo(c.isTTY, "Client disconnected (%d active)", count)
-	}
+	logInfo(c.isTTY, "Client disconnected (%d active)", count)
 }
 
 // ---------------------------------------------------------------------------------------
