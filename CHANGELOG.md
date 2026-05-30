@@ -1,3 +1,7 @@
+# serverpeek 1.1.1 - 30 May 2026
+
+Moved to new GitHub location: https://github.com/WaterJuice/serverpeek
+
 # serverpeek 1.1.0 - 21 Apr 2026
 
 - Collector now runs continuously instead of sleeping when no clients are connected, so new connections immediately see a populated history graph
