@@ -117,7 +117,7 @@ Makefile                # Build orchestration
 - SSE endpoint at `/api/stream` streams shared snapshots to all clients
 - JSON snapshot endpoint at `/api/snapshot` for one-off queries
 - Single background goroutine gathers data every 2 seconds
-- Collector sleeps when no SSE clients are connected, wakes on first connect
+- Collector runs continuously so history is ready the moment a client connects
 - New clients receive full 2-minute history buffer (60 snapshots) on connect
 - Resource usage is constant regardless of number of connected clients
 

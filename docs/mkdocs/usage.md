@@ -66,6 +66,15 @@ Shows physical memory and swap usage:
 
 On macOS, used memory is calculated as active + wired + compressed, which excludes file cache. This gives a more accurate picture of real memory pressure — file cache is freely reclaimable and does not represent the system running out of memory.
 
+### Disk
+
+Shows usage for the main disk — the filesystem mounted at root (`/`):
+
+- **Used** — used and total space with a colour-coded percentage bar
+- **Free** — space available
+
+Usage is read via `statfs` on `/`, so it reports the whole disk and deliberately ignores virtual filesystems, overlays, and external drives. On macOS the root and data volumes share one APFS container, so this reflects the whole container — matching the figure shown in Storage settings.
+
 ### CPU & Memory History
 
 Rolling 2-minute graphs for CPU and memory usage. History is maintained server-side, so new clients see the full graph immediately on connect.
@@ -122,6 +131,7 @@ The `/api/snapshot` endpoint returns JSON with these top-level keys:
     "machine": { ... },
     "cpu": { ... },
     "memory": { ... },
+    "disk": { ... },
     "processes": [ ... ],
     "docker": [ ... ],
     "network": [ ... ]
