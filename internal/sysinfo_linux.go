@@ -11,6 +11,7 @@
 //	Version History
 //	---------------
 //	Mar 2026 - Created
+//	Jun 2026 - Added main disk usage via statfs
 //
 // ---------------------------------------------------------------------------------------
 package internal
@@ -26,6 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -330,6 +332,24 @@ func parseMemInfoValue(line string) uint64 {
 		val *= 1024
 	}
 	return val
+}
+
+// ---------------------------------------------------------------------------------------
+//
+//	Disk Information
+//
+// ---------------------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------------------
+// getDiskInfo returns usage for the main disk — the filesystem mounted at root.
+// Using statfs on "/" deliberately ignores virtual filesystems, overlays, and any
+// other mounts; only the root volume's space is reported.
+func getDiskInfo() DiskInfo {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs("/", &st); err != nil {
+		return DiskInfo{Mountpoint: "/"}
+	}
+	return diskInfoFromStatfs("/", st.Blocks, st.Bfree, st.Bavail, uint64(st.Bsize))
 }
 
 // ---------------------------------------------------------------------------------------

@@ -1,3 +1,8 @@
+# serverpeek 1.2.0 - 3 Jun 2026
+
+- Added a Disk card to the dashboard — shows used/total, free space, and a colour-coded usage bar for the main disk
+- Reports the whole-disk figure via statfs on the root mount; deliberately ignores virtual filesystems, overlays, and external drives
+
 # serverpeek 1.1.1 - 30 May 2026
 
 Moved to new GitHub location: https://github.com/WaterJuice/serverpeek

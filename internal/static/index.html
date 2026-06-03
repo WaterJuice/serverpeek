@@ -100,7 +100,7 @@ html, body {
     flex: 1;
     display: grid;
     grid-template-columns: 280px 1fr 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     gap: 8px;
     padding: 8px;
     min-height: 0;
@@ -361,11 +361,12 @@ html, body {
 /* ---- Grid placement ---- */
 .cell-machine { grid-column: 1; grid-row: 1; }
 .cell-memory  { grid-column: 1; grid-row: 2; }
-.cell-cpu     { grid-column: 1; grid-row: 3; overflow: hidden; }
+.cell-disk    { grid-column: 1; grid-row: 3; }
+.cell-cpu     { grid-column: 1; grid-row: 4; overflow: hidden; }
 .cell-cpu .card-body { overflow-y: hidden; padding: 4px 10px; }
-.cell-cpu-graph  { grid-column: 2; grid-row: 1 / 3; }
-.cell-mem-graph  { grid-column: 3; grid-row: 1 / 3; }
-.cell-processes  { grid-column: 2 / 4; grid-row: 3; overflow: hidden; }
+.cell-cpu-graph  { grid-column: 2; grid-row: 1 / 4; }
+.cell-mem-graph  { grid-column: 3; grid-row: 1 / 4; }
+.cell-processes  { grid-column: 2 / 4; grid-row: 4; overflow: hidden; }
 .cell-processes .card-body { overflow-y: auto; }
 
 /* ---- Beta Ribbon ---- */
@@ -433,6 +434,14 @@ html, body {
             <h2>Memory</h2>
         </div>
         <div class="card-body" id="memory-info"></div>
+    </div>
+
+    <div class="card cell-disk">
+        <div class="card-header">
+            <h2>Disk</h2>
+            <span class="badge" id="disk-badge"></span>
+        </div>
+        <div class="card-body" id="disk-info"></div>
     </div>
 
     <div class="card cell-cpu">
@@ -546,25 +555,30 @@ function renderMachine(m) {
     `;
 }
 
-function renderMemory(mem) {
-    const el = document.getElementById('memory-info');
-    const usedStr = formatBytes(mem.used);
-    const totalStr = formatBytes(mem.total);
-
-    let html = `
+// usageBar renders a labelled usage bar (used/total + percentage) shared by the
+// memory, swap, and disk cards. `extra` is optional HTML placed inside the section.
+function usageBar(title, used, total, percent, extra) {
+    return `
         <div class="memory-section">
             <div class="mem-label">
                 <div>
-                    <span class="mem-title">Physical</span>
-                    <span class="mem-detail">&nbsp;${usedStr} / ${totalStr}</span>
+                    <span class="mem-title">${title}</span>
+                    <span class="mem-detail">&nbsp;${formatBytes(used)} / ${formatBytes(total)}</span>
                 </div>
-                <span class="mem-pct ${textColourClass(mem.percent)}">${mem.percent.toFixed(1)}%</span>
+                <span class="mem-pct ${textColourClass(percent)}">${percent.toFixed(1)}%</span>
             </div>
             <div class="bar-container bar-large">
-                <div class="bar-fill" style="width:${mem.percent}%; background:${barColour(mem.percent)}"></div>
+                <div class="bar-fill" style="width:${percent}%; background:${barColour(percent)}"></div>
             </div>
+            ${extra || ''}
         </div>
     `;
+}
+
+function renderMemory(mem) {
+    const el = document.getElementById('memory-info');
+
+    let html = usageBar('Physical', mem.used, mem.total, mem.percent);
 
     // Breakdown: App (active), Wired, Compressed
     if (mem.active || mem.wired || mem.compressed) {
@@ -576,25 +590,24 @@ function renderMemory(mem) {
     }
 
     if (mem.swap_total > 0) {
-        const swapUsedStr = formatBytes(mem.swap_used);
-        const swapTotalStr = formatBytes(mem.swap_total);
-        html += `
-            <div class="memory-section">
-                <div class="mem-label">
-                    <div>
-                        <span class="mem-title">Swap</span>
-                        <span class="mem-detail">&nbsp;${swapUsedStr} / ${swapTotalStr}</span>
-                    </div>
-                    <span class="mem-pct ${textColourClass(mem.swap_percent)}">${mem.swap_percent.toFixed(1)}%</span>
-                </div>
-                <div class="bar-container bar-large">
-                    <div class="bar-fill" style="width:${mem.swap_percent}%; background:${barColour(mem.swap_percent)}"></div>
-                </div>
-            </div>
-        `;
+        html += usageBar('Swap', mem.swap_used, mem.swap_total, mem.swap_percent);
     }
 
     el.innerHTML = html;
+}
+
+function renderDisk(disk) {
+    const el = document.getElementById('disk-info');
+    const badge = document.getElementById('disk-badge');
+    if (!disk || disk.total === 0) {
+        badge.textContent = '';
+        el.innerHTML = '<div class="empty-state">No disk data</div>';
+        return;
+    }
+
+    badge.textContent = disk.mountpoint;
+    const free = `<div style="font-size:10px;font-family:var(--font-mono);color:var(--text-dim);margin-top:6px;">${formatBytes(disk.free)} free</div>`;
+    el.innerHTML = usageBar('Used', disk.used, disk.total, disk.percent, free);
 }
 
 function renderCPU(cpu) {
@@ -989,6 +1002,7 @@ function updateGraphs(data) {
 function updateDashboard(data) {
     if (data.machine) renderMachine(data.machine);
     if (data.memory) renderMemory(data.memory);
+    if (data.disk) renderDisk(data.disk);
     if (data.cpu) renderCPU(data.cpu);
     updateGraphs(data);
     renderProcesses(data.processes || [], data.docker || [], data);

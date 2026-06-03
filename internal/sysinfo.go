@@ -13,6 +13,7 @@
 //	---------------
 //	Mar 2026 - Created (Python with psutil)
 //	Mar 2026 - Rewritten in Go (stdlib only)
+//	Jun 2026 - Added main disk usage information
 //
 // ---------------------------------------------------------------------------------------
 package internal
@@ -50,6 +51,7 @@ type Snapshot struct {
 	Machine   MachineInfo           `json:"machine"`
 	CPU       CPUInfo               `json:"cpu"`
 	Memory    MemoryInfo            `json:"memory"`
+	Disk      DiskInfo              `json:"disk"`
 	Processes []ProcessInfo         `json:"processes"`
 	Docker    []DockerContainerInfo `json:"docker"`
 	Network   []NetworkConnection   `json:"network"`
@@ -97,6 +99,15 @@ type MemoryInfo struct {
 	SwapTotal   uint64  `json:"swap_total"`
 	SwapUsed    uint64  `json:"swap_used"`
 	SwapPercent float64 `json:"swap_percent"`
+}
+
+// DiskInfo holds usage for the main disk (the filesystem mounted at root).
+type DiskInfo struct {
+	Mountpoint string  `json:"mountpoint"`
+	Total      uint64  `json:"total"`
+	Used       uint64  `json:"used"`
+	Free       uint64  `json:"free"`
+	Percent    float64 `json:"percent"`
 }
 
 // ProcessInfo holds information about a process or process group.
@@ -209,6 +220,7 @@ func GetSnapshot() Snapshot {
 		Machine:   getMachineInfo(),
 		CPU:       getCPUInfo(),
 		Memory:    getMemoryInfoPlatform(),
+		Disk:      getDiskInfo(),
 		Processes: getTopProcesses(20),
 		Docker:    getDockerContainers(),
 		Network:   getNetworkConnections(),
@@ -805,6 +817,29 @@ func runCommand(name string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	out, err := cmd.Output()
 	return string(out), err
+}
+
+// ---------------------------------------------------------------------------------------
+// diskInfoFromStatfs builds a DiskInfo from raw statfs block counts. The percentage
+// matches df's convention: used / (used + available), which excludes blocks reserved
+// for root so the figure agrees with what users see on the command line.
+func diskInfoFromStatfs(mountpoint string, blocks, bfree, bavail, bsize uint64) DiskInfo {
+	total := blocks * bsize
+	free := bavail * bsize
+	used := (blocks - bfree) * bsize
+
+	pct := 0.0
+	if used+free > 0 {
+		pct = float64(used) / float64(used+free) * 100
+	}
+
+	return DiskInfo{
+		Mountpoint: mountpoint,
+		Total:      total,
+		Used:       used,
+		Free:       free,
+		Percent:    roundTo1(pct),
+	}
 }
 
 // ---------------------------------------------------------------------------------------

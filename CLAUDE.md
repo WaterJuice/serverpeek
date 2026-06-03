@@ -4,7 +4,7 @@ This file provides guidance for AI agents working on this project.
 
 ## Project Overview
 
-serverpeek is a live-updating web dashboard for server monitoring. It displays CPU usage, memory usage, machine and OS information, high-CPU processes, Docker containers, and open network ports. The server uses Server-Sent Events (SSE) for real-time updates to a single-page web dashboard.
+serverpeek is a live-updating web dashboard for server monitoring. It displays CPU usage, memory usage, main disk space usage, machine and OS information, high-CPU processes, Docker containers, and open network ports. The server uses Server-Sent Events (SSE) for real-time updates to a single-page web dashboard.
 
 The project is written in Go and distributed as platform-specific Python wheels via PyPI (using bin2whl). This means users install it with `pip install serverpeek` or `uvx serverpeek`, but the binary is a statically-linked Go executable — no Python runtime required at execution time.
 
@@ -85,8 +85,8 @@ make go-build   # Cross-compile for all 6 platforms
 make build      # Full build: check, go-build, docs, platform wheels
 make docs       # Build HTML documentation into html/
 make clean      # Remove build artefacts
-make dev        # Build for current platform + symlink into .venv/bin/
-make run ARGS="--port 3000"  # Build and run with arguments
+make dev        # Set up .venv + a go-run launcher (runs from source, no rebuild)
+make run ARGS="--port 3000"  # Run from source via `go run` with arguments
 ```
 
 ## Project Structure
@@ -126,6 +126,7 @@ Makefile                # Build orchestration
 - CPU model detection with fallbacks: sysctl (macOS), /proc/cpuinfo, lscpu
 - Memory and swap usage via /proc/meminfo (Linux) or vm_stat (macOS)
 - On macOS, reports active+wired+compressed (excludes file cache)
+- Main disk usage via statfs on the root mount (`/`); reports the whole-disk figure and ignores virtual filesystems, overlays, and external drives
 - Machine info (hostname, platform, architecture, CPU model, uptime) via sysctl/proc
 - Top processes via ps, sorted by combined CPU + memory usage (normalised per core)
 - Processes grouped by parent PID + name (e.g. 10 stress workers → "stress (x10)")
@@ -139,7 +140,7 @@ Makefile                # Build orchestration
 - Kiosk-friendly: 100vh viewport-filling CSS Grid layout, no scrolling
 - Auto-connects to SSE for real-time updates with history replay
 - CPU and memory history graphs (Canvas API, 2-minute rolling window)
-- Colour-coded CPU and memory bars (green → yellow → red)
+- Colour-coded CPU, memory, swap, and disk bars (green → yellow → red)
 - Runtime tags on processes (e.g. "python 3.14", "container")
 - Unified process table merging host processes and Docker container internals
 

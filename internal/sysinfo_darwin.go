@@ -11,6 +11,7 @@
 //	Version History
 //	---------------
 //	Mar 2026 - Created
+//	Jun 2026 - Added main disk usage via statfs
 //
 // ---------------------------------------------------------------------------------------
 package internal
@@ -298,6 +299,24 @@ func parseSwapUsage(s string) (total uint64, used uint64) {
 		}
 	}
 	return
+}
+
+// ---------------------------------------------------------------------------------------
+//
+//	Disk Information
+//
+// ---------------------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------------------
+// getDiskInfo returns usage for the main disk — the filesystem mounted at root.
+// On APFS, the root volume shares its container's free space with the data volume,
+// so statfs on "/" reports the whole disk's capacity and usage.
+func getDiskInfo() DiskInfo {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs("/", &st); err != nil {
+		return DiskInfo{Mountpoint: "/"}
+	}
+	return diskInfoFromStatfs("/", st.Blocks, st.Bfree, st.Bavail, uint64(st.Bsize))
 }
 
 // ---------------------------------------------------------------------------------------
