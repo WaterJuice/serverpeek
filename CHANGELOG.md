@@ -1,13 +1,19 @@
-# serverpeek 1.3.0 Beta 1 - 18 Jun 2026
+# serverpeek 1.3.0 - 18 Jun 2026
 
-- Faster, steadier updates on busy servers — snapshot collectors (CPU, memory, disk, processes, Docker, network) now run concurrently, so a cycle costs as much as the slowest single source rather than the sum of them all
-- Docker `stats` and per-container `top` calls now run in parallel instead of one-at-a-time
-- Update interval is now measured from the start of collection, so the period stays close to 2 seconds instead of drifting out to 2 seconds plus however long collection took
+- Faster, steadier updates on busy servers — snapshot collectors (CPU, memory, disk,
+  processes, Docker, network) now run concurrently, so a cycle costs as much as the
+  slowest single source rather than the sum of them all
+- Docker `stats` and per-container `top` calls now run in parallel instead of
+  one-at-a-time
+- Update interval is now measured from the start of collection, so the period stays close
+  to 2 seconds instead of drifting out to 2 seconds plus however long collection took
 
 # serverpeek 1.2.0 - 3 Jun 2026
 
-- Added a Disk card to the dashboard — shows used/total, free space, and a colour-coded usage bar for the main disk
-- Reports the whole-disk figure via statfs on the root mount; deliberately ignores virtual filesystems, overlays, and external drives
+- Added a Disk card to the dashboard — shows used/total, free space, and a colour-coded
+  usage bar for the main disk
+- Reports the whole-disk figure via statfs on the root mount; deliberately ignores virtual
+  filesystems, overlays, and external drives
 
 # serverpeek 1.1.1 - 30 May 2026
 
@@ -15,7 +21,8 @@ Moved to new GitHub location: https://github.com/WaterJuice/serverpeek
 
 # serverpeek 1.1.0 - 21 Apr 2026
 
-- Collector now runs continuously instead of sleeping when no clients are connected, so new connections immediately see a populated history graph
+- Collector now runs continuously instead of sleeping when no clients are connected, so
+  new connections immediately see a populated history graph
 
 # serverpeek 1.0.0 - 14 Apr 2026
 
