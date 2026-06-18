@@ -213,17 +213,48 @@ func Initialise() {
 // ---------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------
-// GetSnapshot collects a full system snapshot for the dashboard.
+// GetSnapshot collects a full system snapshot for the dashboard. The independent
+// collectors run concurrently so the wall-clock cost is that of the single slowest
+// source (typically docker stats or lsof) rather than the sum of them all.
 func GetSnapshot() Snapshot {
+	var (
+		machine   MachineInfo
+		cpu       CPUInfo
+		memory    MemoryInfo
+		disk      DiskInfo
+		processes []ProcessInfo
+		docker    []DockerContainerInfo
+		network   []NetworkConnection
+		wg        sync.WaitGroup
+	)
+
+	gather := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fn()
+		}()
+	}
+
+	gather(func() { machine = getMachineInfo() })
+	gather(func() { cpu = getCPUInfo() })
+	gather(func() { memory = getMemoryInfoPlatform() })
+	gather(func() { disk = getDiskInfo() })
+	gather(func() { processes = getTopProcesses(20) })
+	gather(func() { docker = getDockerContainers() })
+	gather(func() { network = getNetworkConnections() })
+
+	wg.Wait()
+
 	return Snapshot{
 		Timestamp: float64(time.Now().UnixMilli()) / 1000.0,
-		Machine:   getMachineInfo(),
-		CPU:       getCPUInfo(),
-		Memory:    getMemoryInfoPlatform(),
-		Disk:      getDiskInfo(),
-		Processes: getTopProcesses(20),
-		Docker:    getDockerContainers(),
-		Network:   getNetworkConnections(),
+		Machine:   machine,
+		CPU:       cpu,
+		Memory:    memory,
+		Disk:      disk,
+		Processes: processes,
+		Docker:    docker,
+		Network:   network,
 	}
 }
 
@@ -670,29 +701,37 @@ func getDockerContainers() []DockerContainerInfo {
 		return nil
 	}
 
-	// Get stats
+	// Fetch the stats table and each container's internal process list concurrently.
+	// `docker stats` and the per-container `docker top` calls are independent, so
+	// running them in parallel turns N+1 serial subprocess round-trips into one.
 	ids := make([]string, len(containers))
 	for i, c := range containers {
 		ids[i] = c.ID
 	}
-	statsArgs := append([]string{"stats", "--no-stream", "--format",
-		`{"id":"{{.ID}}","cpu":"{{.CPUPerc}}","memory":"{{.MemUsage}}","mem_percent":"{{.MemPerc}}","net_io":"{{.NetIO}}"}`},
-		ids...)
-	statsOut, err := runCommand("docker", statsArgs...)
-	statsMap := make(map[string]map[string]string)
-	if err == nil {
-		for _, line := range strings.Split(strings.TrimSpace(statsOut), "\n") {
-			if line == "" {
-				continue
-			}
-			var stat map[string]string
-			if json.Unmarshal([]byte(line), &stat) == nil {
-				statsMap[stat["id"]] = stat
-			}
-		}
+
+	var (
+		wg        sync.WaitGroup
+		statsMap  map[string]map[string]string
+		procsByID = make([][]DockerProcessInfo, len(containers))
+	)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		statsMap = readDockerStats(ids)
+	}()
+
+	for i := range containers {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			procsByID[i] = getContainerProcesses(containers[i].ID)
+		}(i)
 	}
 
-	// Merge stats and get internal processes
+	wg.Wait()
+
+	// Merge stats and internal processes back onto the container list.
 	for i := range containers {
 		stat := statsMap[containers[i].ID]
 		if stat != nil {
@@ -706,10 +745,35 @@ func getDockerContainers() []DockerContainerInfo {
 			containers[i].MemPercent = "0%"
 			containers[i].NetIO = "N/A"
 		}
-		containers[i].Processes = getContainerProcesses(containers[i].ID)
+		containers[i].Processes = procsByID[i]
 	}
 
 	return containers
+}
+
+// ---------------------------------------------------------------------------------------
+// readDockerStats runs a single `docker stats --no-stream` call for the given container
+// IDs and returns a map keyed by container ID. A nil map is returned on error.
+func readDockerStats(ids []string) map[string]map[string]string {
+	statsArgs := append([]string{"stats", "--no-stream", "--format",
+		`{"id":"{{.ID}}","cpu":"{{.CPUPerc}}","memory":"{{.MemUsage}}","mem_percent":"{{.MemPerc}}","net_io":"{{.NetIO}}"}`},
+		ids...)
+	statsOut, err := runCommand("docker", statsArgs...)
+	if err != nil {
+		return nil
+	}
+
+	statsMap := make(map[string]map[string]string)
+	for _, line := range strings.Split(strings.TrimSpace(statsOut), "\n") {
+		if line == "" {
+			continue
+		}
+		var stat map[string]string
+		if json.Unmarshal([]byte(line), &stat) == nil {
+			statsMap[stat["id"]] = stat
+		}
+	}
+	return statsMap
 }
 
 // ---------------------------------------------------------------------------------------

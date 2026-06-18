@@ -104,8 +104,14 @@ func (c *snapshotCollector) start() {
 
 // ---------------------------------------------------------------------------------------
 // run continuously collects snapshots forever, regardless of client count.
+// The interval is measured from the start of each collection so the update
+// period stays close to updateInterval rather than drifting out to
+// updateInterval plus however long collection took. When collection itself
+// takes longer than updateInterval, the next cycle starts immediately.
 func (c *snapshotCollector) run() {
 	for {
+		start := time.Now()
+
 		snapshot := GetSnapshot()
 		jsonData, err := json.Marshal(snapshot)
 		if err != nil {
@@ -131,7 +137,9 @@ func (c *snapshotCollector) run() {
 		c.mu.Unlock()
 		close(oldCh)
 
-		time.Sleep(updateInterval)
+		if elapsed := time.Since(start); elapsed < updateInterval {
+			time.Sleep(updateInterval - elapsed)
+		}
 	}
 }
 
