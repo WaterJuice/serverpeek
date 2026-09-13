@@ -160,7 +160,7 @@ Makefile                # Build orchestration
 - All binaries are statically linked (`CGO_ENABLED=0`)
 - Version injected at build time via `-ldflags -X main.Version=...`
 - Platform wheels built using `bin2whl` from `wheel.json` config
-- Published to PyPI via `cal-publish-python`
+- Published to PyPI via `wj-publish`
 
 ## Testing Changes
 
